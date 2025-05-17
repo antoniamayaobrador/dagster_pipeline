@@ -1,12 +1,7 @@
-from dagster import AssetExecutionContext
-from dagster_dbt import DbtCliResource, dbt_assets
+from pathlib import Path
+from dagster_dbt import load_assets_from_dbt_project
 
-from .project import weather_project_project
-from .constants import DBT_PROJECT_DIR, DBT_PROFILES_DIR
-
-
-
-@dbt_assets(manifest=weather_project_project.manifest_path)
-def weather_project_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
-    yield from dbt.cli(["build"], context=context).stream()
-
+weather_project_dbt_assets = load_assets_from_dbt_project(
+    project_dir=Path(__file__).joinpath("../../weather_project").resolve(),
+    profiles_dir=Path(__file__).joinpath("../../weather_project").resolve(),
+)
