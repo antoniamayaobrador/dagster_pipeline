@@ -15,6 +15,7 @@ env:
   ENABLE_FAST_DEPLOYS: 'true'
   PYTHON_VERSION: '3.10'
   DAGSTER_CLOUD_FILE: 'dagster_cloud.yaml'
+  DBT_PROJECT_DIR: 'weather_project'
 
 jobs:
   dagster_cloud_default_deploy:
@@ -41,6 +42,23 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           path: project-repo
+          fetch-depth: 0  # Fetch all history for dbt to work properly
+
+      - name: Install dbt and dependencies
+        if: steps.prerun.outputs.result == 'pex-deploy'
+        working-directory: project-repo
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-core dbt-postgres  # Add your dbt adapter here
+          pip install -e "[dev]"
+
+      - name: Compile dbt project
+        if: steps.prerun.outputs.result == 'pex-deploy'
+        working-directory: project-repo/${{ env.DBT_PROJECT_DIR }}
+        run: |
+          dbt deps
+          dbt compile --target dev  # This will generate the manifest.json
+          ls -la target/  # Debug: List the target directory contents
 
       - name: Python Executable Deploy
         if: steps.prerun.outputs.result == 'pex-deploy'
@@ -61,11 +79,28 @@ jobs:
       fail-fast: false
       matrix:
         location: ${{ fromJSON(needs.dagster_cloud_default_deploy.outputs.build_info) }}
+    env:
+      DBT_PROJECT_DIR: 'weather_project'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           ref: ${{ github.head_ref }}
+          fetch-depth: 0  # Fetch all history for dbt to work properly
+      - name: Install dbt and dependencies
+        working-directory: .
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-core dbt-postgres  # Add your dbt adapter here
+          pip install -e "[dev]"
+
+      - name: Compile dbt project
+        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        run: |
+          dbt deps
+          dbt compile --target dev  # This will generate the manifest.json
+          ls -la target/  # Debug: List the target directory contents
+
       - name: Build and deploy to Dagster Cloud serverless
         uses: dagster-io/dagster-cloud-action/actions/serverless_prod_deploy@v0.1
         with:
