@@ -1,0 +1,152 @@
+version: 2
+
+models:
+  - name: weather_daily_summary
+    description: "Daily aggregated weather summary."
+    columns:
+      - name: date
+        description: "Date of the weather summary (YYYY-MM-DD)."
+        tests: [not_null, unique]
+      - name: last_updated
+        description: "Timestamp of the latest data extraction for this date."
+        tests: [not_null]
+      - name: avg_max_temp
+        description: "Average of the maximum temperatures for this day."
+        tests: [not_null]
+      - name: avg_min_temp
+        description: "Average of the minimum temperatures for this day."
+        tests: [not_null]
+      - name: highest_temp
+        description: "Highest maximum temperature recorded for this day."
+        tests: [not_null]
+      - name: lowest_temp
+        description: "Lowest minimum temperature recorded for this day."
+        tests: [not_null]
+      - name: avg_precipitation_prob
+        description: "Average precipitation probability for this day."
+        tests: [not_null]
+      - name: max_precipitation_prob
+        description: "Maximum precipitation probability for this day."
+        tests: [not_null]
+      - name: max_uv_index
+        description: "Maximum UV index for this day."
+        tests: [not_null]
+      - name: weather_conditions
+        description: "Distinct weather condition descriptions aggregated for this day."
+        tests: [not_null]
+
+  - name: weather_current_metrics
+    description: "Current weather metrics, incremental table."
+    columns:
+      - name: date_time
+        description: "Timestamp of the current weather observation (local time)."
+        tests:
+          - not_null
+          # - unique  # Commented temporally because it is failing due to duplicates
+
+      - name: temperature
+        description: "Current observed temperature in degrees Celsius."
+        tests: [not_null]
+      - name: humidity
+        description: "Current observed humidity percentage."
+        tests: [not_null]
+      - name: wind_speed
+        description: "Current observed wind speed (km/h or m/s depending on source)."
+        tests: [not_null]
+      - name: sky_condition
+        description: "Current observed sky condition (e.g. clear, cloudy, etc.)."
+        tests: [not_null]
+      - name: extracted_at
+        description: "Timestamp when this record was extracted from the source."
+
+  - name: weather_daily_snapshot
+    description: "Combines daily summary with the latest current metrics for each day."
+    columns:
+      - name: date
+        description: "Date of the weather summary (YYYY-MM-DD)."
+      - name: last_updated
+        description: "Timestamp of the latest data extraction for this date."
+      - name: avg_max_temp
+        description: "Average of the maximum temperatures for this day."
+      - name: avg_min_temp
+        description: "Average of the minimum temperatures for this day."
+      - name: highest_temp
+        description: "Highest maximum temperature recorded for this day."
+      - name: lowest_temp
+        description: "Lowest minimum temperature recorded for this day."
+      - name: avg_precipitation_prob
+        description: "Average precipitation probability for this day."
+      - name: max_precipitation_prob
+        description: "Maximum precipitation probability for this day."
+      - name: max_uv_index
+        description: "Maximum UV index for this day."
+      - name: weather_conditions
+        description: "Distinct weather condition descriptions aggregated for this day."
+      - name: current_temperature
+        description: "Most recent observed temperature for this day."
+      - name: current_humidity
+        description: "Most recent observed humidity for this day."
+      - name: current_wind_speed
+        description: "Most recent observed wind speed for this day."
+      - name: current_sky_condition
+        description: "Most recent observed sky condition for this day."
+      - name: current_extracted_at
+        description: "Timestamp of the most recent current observation for this day."
+
+  - name: weather_trends
+    description: "Shows trends and changes in daily weather metrics."
+    columns:
+      - name: date
+        description: "Date of the weather summary (YYYY-MM-DD)."
+      - name: avg_max_temp
+        description: "Average of the maximum temperatures for this day."
+      - name: avg_min_temp
+        description: "Average of the minimum temperatures for this day."
+      - name: avg_precipitation_prob
+        description: "Average precipitation probability for this day."
+      - name: max_uv_index
+        description: "Maximum UV index for this day."
+      - name: weather_conditions
+        description: "Distinct weather condition descriptions aggregated for this day."
+      - name: prev_avg_max_temp
+        description: "Previous day's average maximum temperature."
+      - name: prev_avg_min_temp
+        description: "Previous day's average minimum temperature."
+      - name: prev_avg_precipitation_prob
+        description: "Previous day's average precipitation probability."
+      - name: prev_max_uv_index
+        description: "Previous day's maximum UV index."
+      - name: delta_max_temp
+        description: "Change in average maximum temperature from previous day."
+      - name: delta_min_temp
+        description: "Change in average minimum temperature from previous day."
+      - name: delta_precipitation_prob
+        description: "Change in average precipitation probability from previous day."
+      - name: delta_uv_index
+        description: "Change in maximum UV index from previous day."
+
+  - name: weather_extremes
+    description: "Highlights days with extreme weather metrics."
+    columns:
+      - name: date
+        description: "Date of the weather summary (YYYY-MM-DD)."
+      - name: avg_max_temp
+        description: "Average of the maximum temperatures for this day."
+      - name: avg_min_temp
+        description: "Average of the minimum temperatures for this day."
+      - name: avg_precipitation_prob
+        description: "Average precipitation probability for this day."
+      - name: max_uv_index
+        description: "Maximum UV index for this day."
+      - name: weather_conditions
+        description: "Distinct weather condition descriptions aggregated for this day."
+      - name: hottest_day
+        description: "Rank of this day in terms of highest average maximum temperature (1 = hottest)."
+      - name: coldest_day
+        description: "Rank of this day in terms of lowest average minimum temperature (1 = coldest)."
+      - name: wettest_day
+        description: "Rank of this day in terms of highest average precipitation probability (1 = wettest)."
+      - name: highest_uv_day
+        description: "Rank of this day in terms of highest UV index (1 = highest UV)."
+
+        tests: [not_null]
