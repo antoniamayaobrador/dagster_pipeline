@@ -7,12 +7,15 @@ from dagster import file_relative_path
 dbt_project_dir = Path(__file__).joinpath("..", "..", "weather_project").resolve()
 dbt = DbtCliResource(project_dir=os.fspath(dbt_project_dir))
 
+
 # Generación o carga del manifest.json de dbt
 if os.getenv("DAGSTER_DBT_PARSE_PROJECT_ON_LOAD"):
     dbt_parse_invocation = dbt.cli(["parse"], manifest={}).wait()
     dbt_manifest_path = dbt_parse_invocation.target_path.joinpath("manifest.json")
 else:
     dbt_manifest_path = dbt_project_dir.joinpath("target", "manifest.json")
+
+DBT_MANIFEST_PATH = dbt_manifest_path
 
 # Airbyte configs
 AIRBYTE_CONNECTION_ID = os.environ.get(
