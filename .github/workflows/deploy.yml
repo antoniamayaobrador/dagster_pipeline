@@ -44,20 +44,13 @@ jobs:
           path: project-repo
           fetch-depth: 0  # Fetch all history for dbt to work properly
 
-      - name: Install dbt and dependencies
+      - name: Install dependencies and prepare dbt project
         if: steps.prerun.outputs.result == 'pex-deploy'
         working-directory: project-repo
         run: |
           python -m pip install --upgrade pip
-          pip install dbt-core dbt-postgres  # Add your dbt adapter here
-          pip install -e ".[dev]"
-          pip install -e .  # Install the package in development mode
-
-      - name: Generate dbt manifest
-        if: steps.prerun.outputs.result == 'pex-deploy'
-        working-directory: project-repo
-        run: |
-          python -m scripts.generate_manifest || echo "Warning: Failed to generate manifest"
+          pip install . --upgrade --upgrade-strategy eager
+          dagster-dbt project prepare-and-package --file weather_project/project.py
 
       - name: Python Executable Deploy
         if: steps.prerun.outputs.result == 'pex-deploy'
@@ -86,18 +79,12 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0  # Fetch all history for dbt to work properly
-      - name: Install dbt and dependencies
+      - name: Install dependencies and prepare dbt project
         working-directory: .
         run: |
           python -m pip install --upgrade pip
-          pip install dbt-core dbt-postgres  # Add your dbt adapter here
-          pip install -e "[dev]"
-          pip install -e .  # Install the package in development mode
-
-      - name: Generate dbt manifest
-        working-directory: .
-        run: |
-          python -m scripts.generate_manifest || echo "Warning: Failed to generate manifest"
+          pip install . --upgrade --upgrade-strategy eager
+          dagster-dbt project prepare-and-package --file weather_project/project.py
 
       - name: Build and deploy to Dagster Cloud serverless
         uses: dagster-io/dagster-cloud-action/actions/serverless_prod_deploy@v0.1
