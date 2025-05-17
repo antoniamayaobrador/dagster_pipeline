@@ -50,15 +50,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install dbt-core dbt-postgres  # Add your dbt adapter here
-          pip install -e "[dev]"
+          pip install -e ".[dev]"
+          pip install -e .  # Install the package in development mode
 
-      - name: Compile dbt project
+      - name: Generate dbt manifest
         if: steps.prerun.outputs.result == 'pex-deploy'
-        working-directory: project-repo/${{ env.DBT_PROJECT_DIR }}
+        working-directory: project-repo
         run: |
-          dbt deps
-          dbt compile --target dev  # This will generate the manifest.json
-          ls -la target/  # Debug: List the target directory contents
+          python -m scripts.generate_manifest || echo "Warning: Failed to generate manifest"
 
       - name: Python Executable Deploy
         if: steps.prerun.outputs.result == 'pex-deploy'
@@ -93,13 +92,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install dbt-core dbt-postgres  # Add your dbt adapter here
           pip install -e "[dev]"
+          pip install -e .  # Install the package in development mode
 
-      - name: Compile dbt project
-        working-directory: ${{ env.DBT_PROJECT_DIR }}
+      - name: Generate dbt manifest
+        working-directory: .
         run: |
-          dbt deps
-          dbt compile --target dev  # This will generate the manifest.json
-          ls -la target/  # Debug: List the target directory contents
+          python -m scripts.generate_manifest || echo "Warning: Failed to generate manifest"
 
       - name: Build and deploy to Dagster Cloud serverless
         uses: dagster-io/dagster-cloud-action/actions/serverless_prod_deploy@v0.1

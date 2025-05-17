@@ -20,12 +20,14 @@ print(f">>> DBT PROJECT DIR: {weather_project_path}")
 print(">>> EXISTS:", os.path.exists(weather_project_path))
 print(">>> HAS dbt_project.yml:", os.path.exists(os.path.join(weather_project_path, "dbt_project.yml")))
 
+# Prepare assets list
+assets_list = [airbyte_sync_asset]  # Always include Airbyte asset
+if weather_project_dbt_assets is not None:
+    assets_list.append(weather_project_dbt_assets)
+
 # Definitions
 defs = Definitions(
-    assets=[
-        weather_project_dbt_assets,
-        airbyte_sync_asset,
-    ],
+    assets=assets_list,
     jobs=[],  # No definimos jobs aquí porque están en schedules.py
     schedules=schedules,
     resources={
