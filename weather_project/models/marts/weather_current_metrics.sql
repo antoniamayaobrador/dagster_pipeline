@@ -1,17 +1,10 @@
-{{ config(
-    materialized = 'incremental',
-    unique_key = 'date_time'
-) }}
-
-SELECT 
-    date_time,
-    temperature,
-    humidity,
-    wind_speed,
-    sky_condition,
-    extracted_at
-FROM {{ ref('stg_weather_current') }}
-
+SELECT date_time, temperature, humidity, wind_speed, sky_condition, extracted_at
+FROM (
+  SELECT *,
+         ROW_NUMBER() OVER (PARTITION BY date_time ORDER BY extracted_at DESC) as rn
+  FROM {{ ref('stg_weather_current') }}
+)
+WHERE rn = 1
 {% if is_incremental() %}
-  WHERE extracted_at > (SELECT MAX(extracted_at) FROM {{ this }})
+  AND extracted_at > (SELECT MAX(extracted_at) FROM {{ this }})
 {% endif %}

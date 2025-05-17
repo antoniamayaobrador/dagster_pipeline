@@ -1,0 +1,80 @@
+Triggering sync for Airbyte connection: 9391a2b8-d03e-4c77-b294-77ba57b359d7
+Started Airbyte sync job with ID: 29
+Polling job 29... status: running, attempt #0, attempt status: unknown
+Polling job 29... status: running, attempt #0, attempt status: unknown
+Polling job 29... status: running, attempt #0, attempt status: unknown
+Polling job 29... status: succeeded, attempt #0, attempt status: unknown
+Airbyte sync completed with status: succeeded
+Airbyte sync completed with status: succeeded, Total records: 0
+Airbyte sync completed with status: succeeded
+Airbyte sync completed with status: succeeded, Total records: 0
+Airbyte sync completed with final status: succeeded, Job ID: 29, Total records: 0
+Running with dbt=1.7.2
+Registered adapter: snowflake=1.7.2
+[[33mWARNING[0m]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
+There are 1 unused configuration paths:
+- models.weather_project.example
+Found 8 models, 41 tests, 1 source, 0 exposures, 0 metrics, 430 macros, 0 groups, 0 semantic models
+
+Concurrency: 1 threads (target='prod')
+
+1 of 27 START sql view model dbt_antoniamaya.stg_weather_current ............... [RUN]
+1 of 27 OK created sql view model dbt_antoniamaya.stg_weather_current .......... [[32mSUCCESS 1[0m in 1.23s]
+2 of 27 START sql view model dbt_antoniamaya.stg_weather_forecast_daily ........ [RUN]
+2 of 27 OK created sql view model dbt_antoniamaya.stg_weather_forecast_daily ... [[32mSUCCESS 1[0m in 0.59s]
+3 of 27 START sql view model dbt_antoniamaya.stg_weather_forecast_hourly ....... [RUN]
+3 of 27 OK created sql view model dbt_antoniamaya.stg_weather_forecast_hourly .. [[32mSUCCESS 1[0m in 0.57s]
+4 of 27 START test not_null_stg_weather_current_date_time ...................... [RUN]
+4 of 27 PASS not_null_stg_weather_current_date_time ............................ [[32mPASS[0m in 0.58s]
+5 of 27 START test not_null_stg_weather_current_extracted_at ................... [RUN]
+5 of 27 PASS not_null_stg_weather_current_extracted_at ......................... [[32mPASS[0m in 0.42s]
+6 of 27 START test not_null_stg_weather_current_humidity ....................... [RUN]
+6 of 27 PASS not_null_stg_weather_current_humidity ............................. [[32mPASS[0m in 0.50s]
+7 of 27 START test not_null_stg_weather_current_sky_condition .................. [RUN]
+7 of 27 PASS not_null_stg_weather_current_sky_condition ........................ [[32mPASS[0m in 0.55s]
+8 of 27 START test not_null_stg_weather_current_temperature .................... [RUN]
+8 of 27 PASS not_null_stg_weather_current_temperature .......................... [[32mPASS[0m in 0.60s]
+9 of 27 START test not_null_stg_weather_current_wind_speed ..................... [RUN]
+9 of 27 PASS not_null_stg_weather_current_wind_speed ........................... [[32mPASS[0m in 0.50s]
+10 of 27 START test not_null_stg_weather_forecast_daily_extracted_at ........... [RUN]
+10 of 27 PASS not_null_stg_weather_forecast_daily_extracted_at ................. [[32mPASS[0m in 0.48s]
+11 of 27 START test not_null_stg_weather_forecast_daily_forecast_date .......... [RUN]
+11 of 27 PASS not_null_stg_weather_forecast_daily_forecast_date ................ [[32mPASS[0m in 0.58s]
+12 of 27 START test not_null_stg_weather_forecast_daily_max_humidity ........... [RUN]
+12 of 27 PASS not_null_stg_weather_forecast_daily_max_humidity ................. [[32mPASS[0m in 0.47s]
+13 of 27 START test not_null_stg_weather_forecast_daily_max_temp ............... [RUN]
+13 of 27 PASS not_null_stg_weather_forecast_daily_max_temp ..................... [[32mPASS[0m in 0.46s]
+14 of 27 START test not_null_stg_weather_forecast_daily_min_humidity ........... [RUN]
+14 of 27 PASS not_null_stg_weather_forecast_daily_min_humidity ................. [[32mPASS[0m in 0.48s]
+15 of 27 START test not_null_stg_weather_forecast_daily_min_temp ............... [RUN]
+15 of 27 PASS not_null_stg_weather_forecast_daily_min_temp ..................... [[32mPASS[0m in 0.52s]
+16 of 27 START test not_null_stg_weather_forecast_daily_precipitation_probability  [RUN]
+16 of 27 PASS not_null_stg_weather_forecast_daily_precipitation_probability .... [[32mPASS[0m in 0.83s]
+17 of 27 START test not_null_stg_weather_forecast_daily_sky_condition .......... [RUN]
+17 of 27 PASS not_null_stg_weather_forecast_daily_sky_condition ................ [[32mPASS[0m in 0.52s]
+18 of 27 START test not_null_stg_weather_forecast_daily_uv_index ............... [RUN]
+18 of 27 PASS not_null_stg_weather_forecast_daily_uv_index ..................... [[32mPASS[0m in 0.70s]
+19 of 27 START test not_null_stg_weather_forecast_hourly_extracted_at .......... [RUN]
+19 of 27 PASS not_null_stg_weather_forecast_hourly_extracted_at ................ [[32mPASS[0m in 0.95s]
+20 of 27 START test not_null_stg_weather_forecast_hourly_forecast_date ......... [RUN]
+20 of 27 PASS not_null_stg_weather_forecast_hourly_forecast_date ............... [[32mPASS[0m in 0.92s]
+21 of 27 START test not_null_stg_weather_forecast_hourly_hour_index ............ [RUN]
+21 of 27 PASS not_null_stg_weather_forecast_hourly_hour_index .................. [[32mPASS[0m in 0.84s]
+22 of 27 START test not_null_stg_weather_forecast_hourly_humidity .............. [RUN]
+22 of 27 PASS not_null_stg_weather_forecast_hourly_humidity .................... [[32mPASS[0m in 0.83s]
+23 of 27 START test not_null_stg_weather_forecast_hourly_sky_condition ......... [RUN]
+23 of 27 PASS not_null_stg_weather_forecast_hourly_sky_condition ............... [[32mPASS[0m in 0.82s]
+24 of 27 START test not_null_stg_weather_forecast_hourly_temperature ........... [RUN]
+24 of 27 PASS not_null_stg_weather_forecast_hourly_temperature ................. [[32mPASS[0m in 0.73s]
+25 of 27 START test not_null_stg_weather_forecast_hourly_time_of_day ........... [RUN]
+25 of 27 PASS not_null_stg_weather_forecast_hourly_time_of_day ................. [[32mPASS[0m in 0.80s]
+26 of 27 START test not_null_stg_weather_forecast_hourly_wind_direction ........ [RUN]
+26 of 27 PASS not_null_stg_weather_forecast_hourly_wind_direction .............. [[32mPASS[0m in 0.80s]
+27 of 27 START test not_null_stg_weather_forecast_hourly_wind_speed ............ [RUN]
+27 of 27 PASS not_null_stg_weather_forecast_hourly_wind_speed .................. [[32mPASS[0m in 0.89s]
+
+Finished running 3 view models, 24 tests in 0 hours 0 minutes and 19.92 seconds (19.92s).
+
+[32mCompleted successfully[0m
+
+Done. PASS=27 WARN=0 ERROR=0 SKIP=0 TOTAL=27
