@@ -1,10 +1,13 @@
-name: Serverless Prod Deployment
+name: Dagster Deploy with dbt Build
 
 on:
   push:
     branches:
       - "main"
       - "master"
+  pull_request:
+    branches:
+      - "*"
 
 # Global concurrency control for GitHub Actions
 concurrency:
@@ -17,10 +20,11 @@ env:
   ENABLE_FAST_DEPLOYS: 'true'
   PYTHON_VERSION: '3.10'
   DAGSTER_CLOUD_FILE: 'dagster_cloud.yaml'
+  DBT_PROJECT_DIR: 'weather_project'
 
 # GitHub Actions workflow
 jobs:
-  deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -31,11 +35,40 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           
-      - name: Install dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git
+          curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+      
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install dagster dagster-cloud
-          
+          pip install -e ".[dev]"
+          cd ${{ env.DBT_PROJECT_DIR }}
+          pip install -r requirements.txt  # If you have dbt requirements in a separate file
+          pip install dbt-core dbt-postgres  # Or your specific dbt adapter
+          cd ..
+      
+      - name: Set up environment variables
+        run: |
+          # Load environment variables from .env file if it exists
+          if [ -f .env ]; then
+            echo "Loading environment variables from .env"
+            set -a
+            source .env
+            set +a
+          else
+            echo "No .env file found, using GitHub Secrets"
+          fi
+      
+      - name: Run dbt deps and build
+        run: |
+          cd ${{ env.DBT_PROJECT_DIR }}
+          dbt deps
+          dbt build --target dev  # Or your target environment
+      
       - name: Create dagster_cloud.yaml
         run: |
           cat > ${{ env.DAGSTER_CLOUD_FILE }} << 'EOL'
@@ -75,15 +108,16 @@ jobs:
           echo "Generated ${{ env.DAGSTER_CLOUD_FILE }} with deployment settings"
           cat ${{ env.DAGSTER_CLOUD_FILE }}
       
-      - name: Login to Dagster Cloud
-        uses: dagster-io/dagster-cloud-action@v3
-        with:
-          organization_id: ${{ vars.ORGANIZATION_ID }}
-          api_token: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
-
+      - name: Load Dagster definitions (validation)
+        run: |
+          python -c "from weather.definitions import defs; print('Dagster definitions loaded successfully')"
+      
+      # Only run deployment on main/master branches, not on PRs
       - name: Deploy to Dagster Cloud
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         env:
           DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+          ORGANIZATION_ID: ${{ vars.ORGANIZATION_ID }}
         run: |
           dagster-cloud serverless deploy \
             --url ${{ env.DAGSTER_CLOUD_URL }} \
@@ -92,5 +126,6 @@ jobs:
             --python-version ${{ env.PYTHON_VERSION }}
             
       - name: Verify deployment
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
           echo "Deployment to ${{ env.DAGSTER_CLOUD_URL }} completed successfully"
