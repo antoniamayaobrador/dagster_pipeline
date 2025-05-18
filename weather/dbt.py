@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 from dagster import AssetExecutionContext
-from dagster_dbt import DbtCliResource, dbt_assets
+from dagster_dbt import DbtCliResource, dbt_assets, DagsterDbtTranslator
 
 # Set up logging
 logger = logging.getLogger("dbt_assets")

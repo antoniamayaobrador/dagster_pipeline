@@ -41,6 +41,10 @@ env:
   # Dagster settings
   DAGSTER_CLOUD_FILE: 'dagster_cloud.yaml'
   ENABLE_FAST_DEPLOYS: 'true'
+  
+  # Secrets (set in GitHub Actions secrets)
+  DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+  ORGANIZATION_ID: ${{ secrets.ORGANIZATION_ID }}
 
 jobs:
   dagster_cloud_default_deploy:
@@ -245,8 +249,8 @@ jobs:
           dagster_cloud_api_token: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
           location: ${{ toJson(matrix.location) }}
           base_image: "python:${{ env.PYTHON_VERSION }}-slim"
-          # Uncomment to pass through Github Action secrets as a JSON string of key-value pairs
-          # env_vars: ${{ toJson(secrets) }}
           organization_id: ${{ secrets.ORGANIZATION_ID }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+          ORGANIZATION_ID: ${{ secrets.ORGANIZATION_ID }}
