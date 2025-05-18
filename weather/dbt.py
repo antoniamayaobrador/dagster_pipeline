@@ -1,10 +1,14 @@
 import os
 import json
+import logging
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Dict, Any, Optional, List
 
-from dagster import AssetExecutionContext, OpExecutionContext
+from dagster import AssetExecutionContext
 from dagster_dbt import DbtCliResource, dbt_assets
+
+# Set up logging
+logger = logging.getLogger("dbt_assets")
 
 def find_manifest_path() -> Path:
     """Find the dbt manifest.json in various possible locations."""
@@ -19,16 +23,21 @@ def find_manifest_path() -> Path:
         Path("/venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/manifest.json"),
         # Relative to the current file
         Path(__file__).parent.parent / "weather_project" / "target" / "manifest.json",
+        # CI/CD environment
+        Path("/github/workspace/weather_project/target/manifest.json"),
     ]
     
     for path in possible_paths:
-        if path.exists():
+        if path and path.exists():
+            logger.info(f"Found dbt manifest at: {path}")
             return path
     
     # If no existing manifest is found, return the first path as a default
-    return possible_paths[0]
+    default_path = possible_paths[0]
+    logger.warning(f"No manifest found, using default path: {default_path}")
+    return default_path
 
-def create_minimal_manifest(path: Path) -> None:
+def create_minimal_manifest(path: Path) -> Dict[str, Any]:
     """Create a minimal valid manifest file if it doesn't exist."""
     path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -48,31 +57,67 @@ def create_minimal_manifest(path: Path) -> None:
                 "unique_id": "model.weather_project.stg_weather_current",
                 "fqn": ["weather_project", "staging", "stg_weather_current"],
                 "depends_on": {
-                    "nodes": []
+                    "nodes": [],
+                    "macros": []
                 },
                 "config": {
                     "enabled": True,
-                    "materialized": "view"
+                    "materialized": "view",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore",
+                    "post-hook": [],
+                    "pre-hook": [],
+                    "full_refresh": None,
+                    "persist_docs": {},
+                    "quoting": {},
+                    "column_types": {}
                 },
-                "tags": []
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "staging",
+                "alias": "stg_weather_current",
+                "tags": [],
+                "meta": {},
+                "docs": {"show": True},
+                "columns": {},
+                "sources": [],
+                "refs": [],
+                "sources_linear_previous_id": [],
+                "depends_on_nodes": [],
+                "depends_on_macros": [],
+                "description": "",
+                "patch_path": None,
+                "build_path": None,
+                "compiled_path": None,
+                "deferred": False,
+                "unrendered_config": {},
+                "created_at": 1620000000.0,
+                "config_call_dict": {}
             }
         },
         "sources": {},
         "macros": {},
-        "docs": {},
-        "exposures": {},
-        "metrics": {},
-        "groups": {},
-        "selectors": {},
         "parent_map": {},
-        "child_map": {},
+        "child_map": {"model.weather_project.stg_weather_current": []},
         "group_map": {},
         "disabled": {},
-        "state": {}
+        "exposures": {},
+        "selectors": {},
+        "docs": {},
+        "files": {},
+        "metrics": {},
+        "semantic_models": {},
+        "saved_queries": {},
+        "unit_tests": {},
+        "semantic_layer": {},
+        "query_statistics": {}
     }
     
+    # Write the manifest to disk
     with open(path, 'w') as f:
         json.dump(minimal_manifest, f)
+        
+    return minimal_manifest
 
 # Get the manifest path
 DBT_MANIFEST_PATH = find_manifest_path()
