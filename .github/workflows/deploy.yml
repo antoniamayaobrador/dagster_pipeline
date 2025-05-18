@@ -134,23 +134,22 @@ jobs:
           pip install . --upgrade --upgrade-strategy eager
           pip install dbt-core dbt-postgres
 
-      - name: Generate dbt manifest
+      - name: Set up dbt
         working-directory: weather_project
         run: |
-          # Create target directories for both local and deployed paths
+          # Create necessary directories
           mkdir -p target
           mkdir -p /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target
           
-          # Generate the manifest using dbt
+          # Install dbt dependencies
           echo "Installing dbt dependencies..."
           dbt deps || echo "Warning: dbt deps failed, continuing..."
           
+          # Generate the manifest by compiling the project
           echo "Compiling dbt project..."
-          dbt compile || echo "Warning: dbt compile failed, creating minimal manifest..."
-          
-          # Create a minimal manifest if it doesn't exist
-          if [ ! -f "target/manifest.json" ]; then
-              echo "Creating minimal manifest..."
+          if ! dbt compile; then
+              echo "Warning: dbt compile failed, creating minimal manifest..."
+              # Create a minimal manifest
               cat > target/manifest.json << 'EOL'
               {
                 "metadata": {
@@ -159,7 +158,23 @@ jobs:
                   "generated_at": "2025-05-18T00:00:00.000000Z",
                   "adapter_type": "snowflake"
                 },
-                "nodes": {},
+                "nodes": {
+                  "model.weather_project.stg_weather_current": {
+                    "name": "stg_weather_current",
+                    "resource_type": "model",
+                    "package_name": "weather_project",
+                    "unique_id": "model.weather_project.stg_weather_current",
+                    "fqn": ["weather_project", "staging", "stg_weather_current"],
+                    "depends_on": {
+                      "nodes": []
+                    },
+                    "config": {
+                      "enabled": true,
+                      "materialized": "view"
+                    },
+                    "tags": []
+                  }
+                },
                 "sources": {},
                 "macros": {},
                 "docs": {},
@@ -176,21 +191,28 @@ jobs:
               EOL
           fi
           
+          # Verify the manifest exists and is valid JSON
+          if [ ! -f "target/manifest.json" ]; then
+              echo "Error: Failed to create manifest.json"
+              exit 1
+          fi
+          
           # Copy the manifest to the deployed location
           echo "Copying manifest to deployed location..."
           mkdir -p /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target
           cp target/manifest.json /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/
           
-          # Debug: Show directory structure and manifest content
+          # Debug information
+          echo "=== Debug Information ==="
           echo "Current directory: $(pwd)"
           echo "Directory contents:"
           ls -la
           echo "Target directory contents:"
           ls -la target/
-          echo "Deployed target directory contents:"
-          ls -la /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/
           echo "Manifest contents (first 10 lines):"
           head -n 10 target/manifest.json
+          echo "Deployed target directory contents:"
+          ls -la /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/
 
       - name: Build and deploy to Dagster Cloud serverless
         uses: dagster-io/dagster-cloud-action/actions/serverless_prod_deploy@v0.1

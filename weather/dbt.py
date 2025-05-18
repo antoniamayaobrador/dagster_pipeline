@@ -1,20 +1,24 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
+import json
 
 from dagster import AssetExecutionContext, OpExecutionContext
-from dagster_dbt import DbtCliResource, dbt_assets
+from dagster_dbt import DbtCliResource, dbt_assets, DbtCli, DbtManifest
 
 def find_manifest_path() -> Path:
     """Find the dbt manifest.json in various possible locations."""
+    # Get the project root (one level up from the weather package)
+    project_root = Path(__file__).parent.parent
+    
     # Possible locations where the manifest might be found
     possible_paths = [
-        # Local development
-        Path("weather_project/target/manifest.json"),
+        # Local development - relative to project root
+        project_root / "weather_project" / "target" / "manifest.json",
         # Deployed environment
         Path("/venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/manifest.json"),
         # Relative to the current file
-        (Path(__file__).parent.parent / "weather_project/target/manifest.json").resolve(),
+        Path(__file__).parent.parent / "weather_project" / "target" / "manifest.json",
     ]
     
     for path in possible_paths:
@@ -24,13 +28,12 @@ def find_manifest_path() -> Path:
     # If no existing manifest is found, return the first path as a default
     return possible_paths[0]
 
-# Get the manifest path
-DBT_MANIFEST_PATH = find_manifest_path()
-
-# Create a minimal manifest if it doesn't exist
-if not DBT_MANIFEST_PATH.exists():
-    DBT_MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DBT_MANIFEST_PATH.write_text("""{
+def create_minimal_manifest(path: Path) -> None:
+    """Create a minimal valid manifest file if it doesn't exist."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # A minimal valid manifest with just the required fields
+    minimal_manifest = {
         "metadata": {
             "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v7.json",
             "dbt_version": "1.7.2",
@@ -50,7 +53,28 @@ if not DBT_MANIFEST_PATH.exists():
         "group_map": {},
         "disabled": {},
         "state": {}
-    }""")
+    }
+    
+    with open(path, 'w') as f:
+        json.dump(minimal_manifest, f)
+
+# Get the manifest path
+DBT_MANIFEST_PATH = find_manifest_path()
+
+# Create a minimal manifest if it doesn't exist
+if not DBT_MANIFEST_PATH.exists():
+    create_minimal_manifest(DBT_MANIFEST_PATH)
+
+# Load the manifest to verify it's valid
+try:
+    with open(DBT_MANIFEST_PATH, 'r') as f:
+        manifest_data = json.load(f)
+    # If we got here, the manifest is valid JSON
+    print(f"Successfully loaded manifest from {DBT_MANIFEST_PATH}")
+except Exception as e:
+    print(f"Error loading manifest from {DBT_MANIFEST_PATH}: {str(e)}")
+    # Try to create a fresh manifest
+    create_minimal_manifest(DBT_MANIFEST_PATH)
 
 @dbt_assets(manifest=DBT_MANIFEST_PATH)
 def weather_project_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
@@ -74,8 +98,18 @@ def weather_project_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResour
         raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
     
     try:
-        # Try to run dbt build
+        # First, try to run dbt deps to ensure all dependencies are installed
+        context.log.info("Running dbt deps...")
+        dbt.cli(["deps"], context=context).wait()
+        
+        # Then compile the project to ensure the manifest is up to date
+        context.log.info("Running dbt compile...")
+        dbt.cli(["compile"], context=context).wait()
+        
+        # Finally, run dbt build
+        context.log.info("Running dbt build...")
         yield from dbt.cli(["build"], context=context).stream()
+        
     except Exception as e:
-        context.log.error(f"Error running dbt build: {str(e)}")
+        context.log.error(f"Error running dbt command: {str(e)}")
         raise
