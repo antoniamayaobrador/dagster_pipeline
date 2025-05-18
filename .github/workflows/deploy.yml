@@ -1,91 +1,84 @@
-name: Deploy to Dagster Cloud
+name: Dagster Cloud Serverless Deployment
 
 on:
   push:
-    branches: [main]
+    branches:
+      - "main"
+      - "master"
   pull_request:
-    branches: [main]
-
-# Add permissions at the workflow level
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
-  id-token: write  # Required for OIDC
+    types: [opened, synchronize, reopened, closed]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel in-progress deploys to same branch
+  group: ${{ github.ref }}/deploy
   cancel-in-progress: true
 
 env:
-  # Dagster Cloud configuration
-  DAGSTER_CLOUD_URL: "https://weatherdec2025.dagster.cloud"
-  DAGSTER_CLOUD_ORGANIZATION: "antoniamayaobrador"
-  DAGSTER_CLOUD_DEPLOYMENT: "production"
-  DAGSTER_CLOUD_IS_BRANCH_DEPLOYMENT: ${{ github.event_name == 'pull_request' }}
+  DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+  ENABLE_FAST_DEPLOYS: 'true'
+  PYTHON_VERSION: '3.10'
+  DAGSTER_CLOUD_YAML_PATH: '.'
+  DAGSTER_CLOUD_FILE: 'dagster_cloud.yaml'
+  DAGSTER_CLOUD_ORGANIZATION: 'weatherdec2025'
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
-  # Git information
-  GIT_SHA: ${{ github.sha }}
-  GIT_REF: ${{ github.ref }}
-  GIT_BRANCH: ${{ github.ref_name }}
-  
-  # dbt configuration
+  # dbt configuration (custom for your project)
   DBT_PROFILES_DIR: "./weather_project"
   DBT_TARGET: "dev"
   DBT_PROJECT_DIR: "weather_project"
-  
-  # Python and environment settings
-  PYTHON_VERSION: '3.10'
-  POETRY_VERSION: '1.5.1'
-  
-  # Dagster settings
-  DAGSTER_CLOUD_FILE: 'dagster_cloud.yaml'
-  ENABLE_FAST_DEPLOYS: 'true'
 
 jobs:
   dagster_cloud_default_deploy:
     name: Dagster Serverless Deploy
     runs-on: ubuntu-22.04
-    outputs:
-      build_info: ${{ steps.parse-workspace.outputs.build_info }}
 
     steps:
       - name: Prerun Checks
         id: prerun
         uses: dagster-io/dagster-cloud-action/actions/utils/prerun@v0.1
 
-      - name: Launch Docker Deploy
-        if: steps.prerun.outputs.result == 'docker-deploy'
-        id: parse-workspace
-        uses: dagster-io/dagster-cloud-action/actions/utils/parse_workspace@v0.1
-        with:
-          dagster_cloud_file: $DAGSTER_CLOUD_FILE
-
-      - name: Checkout for Python Executable Deploy
-        if: steps.prerun.outputs.result == 'pex-deploy'
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           ref: ${{ github.head_ref }}
-          path: project-repo
-          fetch-depth: 0  # Fetch all history for dbt to work properly
 
-      - name: Install dependencies
+      # Validate dagster_cloud.yaml and the connection to dagster.cloud
+      - name: Validate configuration
+        id: ci-validate
+        if: steps.prerun.outputs.result != 'skip'
+        uses: dagster-io/dagster-cloud-action/actions/utils/dagster-cloud-cli@v0.1
+        with:
+          command: "ci check --project-dir ${{ env.DAGSTER_CLOUD_YAML_PATH }} --dagster-cloud-yaml-path ${{ env.DAGSTER_CLOUD_FILE }}"
+
+      # Parse dagster_cloud.yaml, detect if this is branch deployment and initialize the build session
+      - name: Initialize build session
+        id: ci-init
+        uses: dagster-io/dagster-cloud-action/actions/utils/ci-init@v0.1
+        with:
+          project_dir: ${{ env.DAGSTER_CLOUD_YAML_PATH }}
+          dagster_cloud_yaml_path: ${{ env.DAGSTER_CLOUD_FILE }}
+          deployment: 'prod'  # Your production deployment name
+
+      # If using fast build, build the PEX
+      # First ensure the correct Python version is installed
+      - name: Set up Python ${{ env.PYTHON_VERSION }} for target
+        id: setup-python-version
         if: steps.prerun.outputs.result == 'pex-deploy'
-        working-directory: project-repo
-        run: |
-          python -m pip install --upgrade pip
-          pip install . --upgrade --upgrade-strategy eager
-          pip install dbt-core dbt-postgres
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install setuptools
+        if: steps.prerun.outputs.result == 'pex-deploy'
+        run: ${{ steps.setup-python-version.outputs.python-path }} -m pip install setuptools
+        shell: bash
 
+      # Generate minimal dbt manifest for PEX deployment
       - name: Generate minimal dbt manifest
         if: steps.prerun.outputs.result == 'pex-deploy'
-        working-directory: project-repo/weather_project
+        working-directory: weather_project
         run: |
-          # Ensure the target directory exists
           mkdir -p target
-          
-          # Generate a minimal manifest without requiring a database connection
-          # This creates a basic manifest that's sufficient for Dagster to load the assets
           cat > target/manifest.json << 'EOL'
           {
             "metadata": {
@@ -110,143 +103,48 @@ jobs:
             "state": {}
           }
           EOL
-          
-          # Verify the manifest was created
-          if [ ! -f "target/manifest.json" ]; then
-              echo "Error: Failed to generate manifest.json"
-              exit 1
-          fi
-          
-          # Show the directory structure for debugging
-          pwd
-          ls -la .
-          ls -la target/
-          
-          echo "Generated minimal dbt manifest:"
-          head -n 20 target/manifest.json
 
-      - name: Debug Secrets
+      - name: Run PEX build
+        id: run-pex-build
         if: steps.prerun.outputs.result == 'pex-deploy'
-        run: |
-          echo "DAGSTER_CLOUD_API_TOKEN is ${DAGSTER_CLOUD_API_TOKEN:+set}"
-        env:
-          DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
-
-      - name: Python Executable Deploy
-        if: steps.prerun.outputs.result == 'pex-deploy'
-        uses: dagster-io/dagster-cloud-action@v1
+        uses: dagster-io/dagster-cloud-action/actions/utils/dagster-cloud-cli@v0.1
         with:
-          action: 'build_deploy_python_executable'
-          dagster_cloud_file: "${{ github.workspace }}/project-repo/${{ env.DAGSTER_CLOUD_FILE }}"
-          build_output_dir: "${{ github.workspace }}/build"
-          python_version: "${{ env.PYTHON_VERSION }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+          command: "ci build --build-strategy=python-executable --python-version ${{ env.PYTHON_VERSION }} --pex-deps-cache-from='${{ github.repository }}' --pex-deps-cache-to='${{ github.repository }}'"
 
-  dagster_cloud_docker_deploy:
-    name: Docker Deploy
-    runs-on: ubuntu-20.04
-    if: needs.dagster_cloud_default_deploy.outputs.build_info
-    needs: dagster_cloud_default_deploy
-    strategy:
-      fail-fast: false
-      matrix:
-        location: ${{ fromJSON(needs.dagster_cloud_default_deploy.outputs.build_info) }}
-    env:
-      DBT_PROJECT_DIR: 'weather_project'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      # Otherwise, enable buildx for caching and build the Docker image
+      - name: Set up Docker Buildx
+        if: steps.prerun.outputs.result == 'docker-deploy'
+        uses: docker/setup-buildx-action@v2
+
+      - name: Run Docker build
+        id: run-docker-build
+        if: steps.prerun.outputs.result == 'docker-deploy'
+        uses: dagster-io/dagster-cloud-action/actions/utils/dagster-cloud-cli@v0.1
         with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0  # Fetch all history for dbt to work properly
-      - name: Install dependencies
-        working-directory: .
-        run: |
-          python -m pip install --upgrade pip
-          pip install . --upgrade --upgrade-strategy eager
-          pip install dbt-core dbt-postgres
+          command: "ci build --build-strategy=docker --python-version ${{ env.PYTHON_VERSION }}"
 
-      - name: Set up dbt
-        working-directory: weather_project
-        run: |
-          # Create necessary directories
-          mkdir -p target
-          mkdir -p /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target
-          
-          # Install dbt dependencies
-          echo "Installing dbt dependencies..."
-          dbt deps || echo "Warning: dbt deps failed, continuing..."
-          
-          # Generate the manifest by compiling the project
-          echo "Compiling dbt project..."
-          if ! dbt compile; then
-              echo "Warning: dbt compile failed, creating minimal manifest..."
-              # Create a minimal manifest
-              cat > target/manifest.json << 'EOL'
-              {
-                "metadata": {
-                  "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v7.json",
-                  "dbt_version": "1.7.2",
-                  "generated_at": "2025-05-18T00:00:00.000000Z",
-                  "adapter_type": "snowflake"
-                },
-                "nodes": {
-                  "model.weather_project.stg_weather_current": {
-                    "name": "stg_weather_current",
-                    "resource_type": "model",
-                    "package_name": "weather_project",
-                    "unique_id": "model.weather_project.stg_weather_current",
-                    "fqn": ["weather_project", "staging", "stg_weather_current"],
-                    "depends_on": {
-                      "nodes": []
-                    },
-                    "config": {
-                      "enabled": true,
-                      "materialized": "view"
-                    },
-                    "tags": []
-                  }
-                },
-                "sources": {},
-                "macros": {},
-                "docs": {},
-                "exposures": {},
-                "metrics": {},
-                "groups": {},
-                "selectors": {},
-                "parent_map": {},
-                "child_map": {},
-                "group_map": {},
-                "disabled": {},
-                "state": {}
-              }
-              EOL
-          fi
-          
-          # Verify the manifest exists and is valid JSON
-          if [ ! -f "target/manifest.json" ]; then
-              echo "Error: Failed to create manifest.json"
-              exit 1
-          fi
-          
-          # Copy the manifest to the deployed location
-          echo "Copying manifest to deployed location..."
-          mkdir -p /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target
-          cp target/manifest.json /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/
-          
-          # Debug information
-          echo "=== Debug Information ==="
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
-          echo "Target directory contents:"
-          ls -la target/
-          echo "Manifest contents (first 10 lines):"
-          head -n 10 target/manifest.json
-          echo "Deployed target directory contents:"
-          ls -la /venvs/ec21669d8b57/lib/python3.10/site-packages/working_directory/root/weather_project/target/
+      # Deploy all code locations in this build session to Dagster Cloud
+      - name: Deploy to Dagster Cloud
+        id: ci-deploy
+        if: steps.prerun.outputs.result != 'skip'
+        uses: dagster-io/dagster-cloud-action/actions/utils/dagster-cloud-cli@v0.1
+        with:
+          command: "ci deploy"
+
+      # Update a PR comment - this runs always() so the comment is updated on success and failure
+      - name: Update PR comment for branch deployments
+        id: ci-notify
+        if: steps.prerun.outputs.result != 'skip'
+        uses: dagster-io/dagster-cloud-action/actions/utils/dagster-cloud-cli@v0.1
+        with:
+          command: "ci notify --project-dir=${{ env.DAGSTER_CLOUD_YAML_PATH }}"
+
+      - name: Generate a summary
+        id: ci-summary
+        if: steps.prerun.outputs.result != 'skip'
+        uses: dagster-io/dagster-cloud-action/actions/utils/dagster-cloud-cli@v0.1
+        with:
+          command: "ci status --output-format=markdown >> $GITHUB_STEP_SUMMARY"
 
       - name: Build and deploy to Dagster Cloud serverless
         uses: dagster-io/dagster-cloud-action/actions/serverless_prod_deploy@v0.1
