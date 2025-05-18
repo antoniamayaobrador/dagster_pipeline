@@ -10,44 +10,42 @@ current_dir = Path(__file__).parent
 DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", str(current_dir / "weather_project"))
 DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", str(current_dir / "weather_project"))
 
-# Validation with helpful error messages
+# Set environment variables for dbt
+os.environ["DBT_PROJECT_DIR"] = DBT_PROJECT_DIR
+os.environ["DBT_PROFILES_DIR"] = DBT_PROFILES_DIR
+
+# Try to find the manifest.json
 project_path = Path(DBT_PROJECT_DIR)
-profiles_path = Path(DBT_PROFILES_DIR)
+manifest_path = None
 
-if not project_path.exists():
-    raise ValueError(
-        f"DBT_PROJECT_DIR does not exist: {DBT_PROJECT_DIR}\n"
-        f"Current working directory: {os.getcwd()}\n"
-        f"Directory contents: {os.listdir(project_path.parent) if project_path.parent.exists() else 'Parent dir does not exist'}"
-    )
+# Common locations for manifest.json
+possible_manifest_paths = [
+    project_path / "target" / "manifest.json",
+    project_path / "dbt_packages" / "dbt_project" / "target" / "manifest.json",
+    project_path.parent / "target" / "manifest.json",
+    Path("/opt/dagster/app/weather/weather_project/target/manifest.json"),
+]
 
-if not profiles_path.exists():
-    raise ValueError(
-        f"DBT_PROFILES_DIR does not exist: {DBT_PROFILES_DIR}\n"
-        f"Current working directory: {os.getcwd()}\n"
-        f"Directory contents: {os.listdir(profiles_path.parent) if profiles_path.parent.exists() else 'Parent dir does not exist'}"
-    )
+for path in possible_manifest_paths:
+    if path.exists():
+        manifest_path = path
+        break
 
-# Check for manifest.json
-manifest_path = project_path / "target" / "manifest.json"
-if not manifest_path.exists():
-    # Try to find the manifest.json in parent directories (common in dbt projects)
-    possible_manifest_paths = [
-        project_path / "target" / "manifest.json",
-        project_path / "dbt_packages" / "dbt_project" / "target" / "manifest.json",
-        project_path.parent / "target" / "manifest.json",
-    ]
-    
-    for path in possible_manifest_paths:
-        if path.exists():
-            manifest_path = path
-            break
-    else:
+if not manifest_path:
+    # If we can't find the manifest, we'll try to run dbt compile to generate it
+    try:
+        import subprocess
+        subprocess.run(["dbt", "deps", "--project-dir", DBT_PROJECT_DIR], check=True)
+        subprocess.run(["dbt", "compile", "--project-dir", DBT_PROJECT_DIR], check=True)
+        manifest_path = project_path / "target" / "manifest.json"
+    except Exception as e:
         raise FileNotFoundError(
-            f"manifest.json not found in any of these locations:\n"
+            f"Could not find or generate manifest.json. Tried these locations:\n"
             f"- {project_path / 'target/manifest.json'}\n"
             f"- {project_path / 'dbt_packages/dbt_project/target/manifest.json'}\n"
-            f"- {project_path.parent / 'target/manifest.json'}"
+            f"- {project_path.parent / 'target/manifest.json'}\n"
+            f"- /opt/dagster/app/weather/weather_project/target/manifest.json\n"
+            f"Error: {str(e)}"
         )
 
 # Recurso dbt

@@ -1,10 +1,4 @@
 locations:
-  weather:
-    code_source:
-      python_file: "weather/definitions.py"
-    build:
-      directory: .
-    container_context:
-      env_vars:
-        DBT_PROJECT_DIR: "/opt/dagster/app/weather/weather_project"
-        DBT_PROFILES_DIR: "/opt/dagster/app/weather/weather_project"
+- code_source:
+    module_name: weather.definitions
+  location_name: weather
