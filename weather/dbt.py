@@ -1,33 +1,34 @@
 from pathlib import Path
 import os
-from dagster import AssetExecutionContext, asset
+from dagster import AssetExecutionContext
 from dagster_dbt import DbtCliResource, dbt_assets
 
-# Get the project root (where the .git directory is located)
-project_root = Path(__file__).parent.parent
+# Carga de variables de entorno
+DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR")
+DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR")
 
-# Path to the dbt project (at the same level as the weather package)
-dbt_project_path = project_root / "weather_project"
+# Validaciones para facilitar el debug
+if not DBT_PROJECT_DIR or not os.path.exists(DBT_PROJECT_DIR):
+    raise ValueError(f"DBT_PROJECT_DIR no existe o no está definido: {DBT_PROJECT_DIR}")
 
-# Path to the manifest file
-manifest_path = dbt_project_path / "target" / "manifest.json"
+if not DBT_PROFILES_DIR or not os.path.exists(DBT_PROFILES_DIR):
+    raise ValueError(f"DBT_PROFILES_DIR no existe o no está definido: {DBT_PROFILES_DIR}")
 
-# Initialize dbt resources with environment variable fallbacks
+# Path al manifest.json
+manifest_path = Path(DBT_PROJECT_DIR) / "target" / "manifest.json"
+if not manifest_path.exists():
+    raise FileNotFoundError(f"manifest.json no encontrado en: {manifest_path}")
+
+# Recurso de dbt
 dbt = DbtCliResource(
-    project_dir=str(dbt_project_path),
-    profiles_dir=str(dbt_project_path),
+    project_dir=DBT_PROJECT_DIR,
+    profiles_dir=DBT_PROFILES_DIR,
 )
 
-# Define dbt assets
+# Definición de assets con el manifest generado previamente
 @dbt_assets(manifest=str(manifest_path))
 def weather_project_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
-    """dbt assets for the weather project."""
-    # Log environment information for debugging
-    context.log.info(f"Project dir: {dbt.project_dir}")
-    context.log.info(f"Profiles dir: {dbt.profiles_dir}")
-    
-    # Run dbt build with the appropriate target
-    target = os.getenv("DBT_TARGET", "dev")  # Default to 'dev' if not specified
-    context.log.info(f"Running dbt build with target: {target}")
-    
+    """Ejecuta `dbt build` con el manifiesto precompilado."""
+    target = os.getenv("DBT_TARGET", "dev")
+    context.log.info(f"Ejecutando `dbt build` con target: {target}")
     yield from dbt.cli(["build", "--target", target], context=context).stream()
