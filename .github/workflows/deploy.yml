@@ -75,11 +75,21 @@ jobs:
         with:
           command: "ci build --build-strategy=python-executable --python-version ${{ env.PYTHON_VERSION }}  --pex-deps-cache-from='${{ github.repository }}' --pex-deps-cache-to='${{ github.repository }}'"
 
-
       # Otherwise, enable buildx for caching and build the Docker image
       - name: Set up Docker Buildx
         if: steps.prerun.outputs.result == 'docker-deploy'
         uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        if: steps.prerun.outputs.result == 'docker-deploy'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ci-init.outputs.image_tag }}
+          file: ./Dockerfile
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
       - name: Run Docker build
         id: run-docker-build
