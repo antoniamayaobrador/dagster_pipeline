@@ -1,5 +1,5 @@
-from dagster import ScheduleDefinition, define_asset_job, asset, AssetIn, SkipReason, RunRequest, in_process_executor
-from dagster import get_dagster_logger
+from dagster import ScheduleDefinition, define_asset_job, in_process_executor, AssetSelection, AssetKey
+from typing import List, Union
 from .constants import WEATHER_SCHEDULE_CRON, EXECUTION_TIMEZONE
 from .airbyte import airbyte_sync_asset
 from .dbt import weather_project_dbt_assets
@@ -11,11 +11,14 @@ airbyte_sync_job = define_asset_job(
     selection=["airbyte_sync_asset"]
 )
 
-# Create a combined job that runs Airbyte sync followed by DBT models
+# Create a combined job that runs Airbyte sync followed by all DBT models
 combined_job = define_asset_job(
     name="combined_weather_job",
-    description="Job that runs Airbyte sync followed by DBT models",
-    selection=["airbyte/airbyte_sync_asset", "stg_weather_current", "stg_weather_forecast_daily", "stg_weather_forecast_hourly"],
+    description="Job that runs Airbyte sync followed by all DBT models",
+    selection=AssetSelection.keys(("airbyte", "airbyte_sync_asset")) | AssetSelection.assets(*[
+        asset for asset in weather_project_dbt_assets.keys
+        if not asset.path[0].startswith("source_")
+    ]),
     executor_def=in_process_executor
 )
 

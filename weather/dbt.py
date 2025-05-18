@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-from dagster import AssetExecutionContext
+from dagster import AssetExecutionContext, Definitions, load_assets_from_modules
 from dagster_dbt import DbtCliResource, dbt_assets, DagsterDbtTranslator
 
 # Set up logging
@@ -236,6 +236,12 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
         
     return minimal_manifest
 
+# Initialize dbt resources
+dbt = DbtCliResource(
+    project_dir=str(Path(__file__).parent.parent / "weather_project"),
+    profiles_dir=str(Path(__file__).parent.parent / "weather_project"),
+)
+
 # Get the manifest path
 DBT_MANIFEST_PATH = find_manifest_path()
 
@@ -254,7 +260,9 @@ except Exception as e:
     # Try to create a fresh manifest
     create_minimal_manifest(DBT_MANIFEST_PATH)
 
-@dbt_assets(manifest=DBT_MANIFEST_PATH)
+@dbt_assets(
+    manifest=DBT_MANIFEST_PATH
+)
 def weather_project_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
     """dbt assets for the weather project."""
     # Log environment information
