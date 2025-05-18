@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from dagster import Definitions, file_relative_path
+from dagster import Definitions, file_relative_path, load_assets_from_modules
 from dagster_dbt import DbtCliResource
 
 # Import assets
@@ -22,11 +22,8 @@ print(f"dbt_project.yml exists: {os.path.exists(os.path.join(DBT_PROJECT_DIR, 'd
 # Ensure the target directory exists
 Path(DBT_TARGET_DIR).mkdir(parents=True, exist_ok=True)
 
-# Prepare assets list
-assets_list = [airbyte_sync_asset]  # Always include Airbyte asset
-if weather_project_dbt_assets is not None:
-    assets_list.append(weather_project_dbt_assets)
-    print("Added dbt assets to the pipeline")
+# Load all dbt assets
+dbt_assets = [weather_project_dbt_assets] if weather_project_dbt_assets is not None else []
 
 # Initialize DBT resource
 dbt_resource = DbtCliResource(
@@ -36,9 +33,21 @@ dbt_resource = DbtCliResource(
     target="dev"
 )
 
+# Combine all assets
+all_assets = [
+    airbyte_sync_asset,  # Airbyte sync asset
+    *dbt_assets,  # dbt assets
+]
+
+# Debug information
+print("=== Asset Configuration ===")
+print(f"Total assets loaded: {len(all_assets)}")
+for asset in all_assets:
+    print(f"- {asset.__name__ if hasattr(asset, '__name__') else str(asset)}")
+
 # Definitions
 defs = Definitions(
-    assets=assets_list,
+    assets=all_assets,
     jobs=[],  # Jobs are defined in schedules.py
     schedules=schedules,
     resources={

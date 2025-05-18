@@ -56,49 +56,158 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 "package_name": "weather_project",
                 "unique_id": "model.weather_project.stg_weather_current",
                 "fqn": ["weather_project", "staging", "stg_weather_current"],
-                "depends_on": {
-                    "nodes": [],
-                    "macros": []
-                },
+                "depends_on": {"nodes": [], "macros": []},
                 "config": {
                     "enabled": True,
                     "materialized": "view",
                     "tags": [],
                     "meta": {},
-                    "on_schema_change": "ignore",
-                    "post-hook": [],
-                    "pre-hook": [],
-                    "full_refresh": None,
-                    "persist_docs": {},
-                    "quoting": {},
-                    "column_types": {}
+                    "on_schema_change": "ignore"
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "staging",
-                "alias": "stg_weather_current",
-                "tags": [],
-                "meta": {},
-                "docs": {"show": True},
-                "columns": {},
-                "sources": [],
-                "refs": [],
-                "sources_linear_previous_id": [],
-                "depends_on_nodes": [],
-                "depends_on_macros": [],
-                "description": "",
-                "patch_path": None,
-                "build_path": None,
-                "compiled_path": None,
-                "deferred": False,
-                "unrendered_config": {},
-                "created_at": 1620000000.0,
-                "config_call_dict": {}
+                "alias": "stg_weather_current"
+            },
+            "model.weather_project.stg_weather_forecast_daily": {
+                "name": "stg_weather_forecast_daily",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.stg_weather_forecast_daily",
+                "fqn": ["weather_project", "staging", "stg_weather_forecast_daily"],
+                "depends_on": {"nodes": [], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "view",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "staging",
+                "alias": "stg_weather_forecast_daily"
+            },
+            "model.weather_project.stg_weather_forecast_hourly": {
+                "name": "stg_weather_forecast_hourly",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.stg_weather_forecast_hourly",
+                "fqn": ["weather_project", "staging", "stg_weather_forecast_hourly"],
+                "depends_on": {"nodes": [], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "view",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "staging",
+                "alias": "stg_weather_forecast_hourly"
+            },
+            "model.weather_project.weather_current_metrics": {
+                "name": "weather_current_metrics",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.weather_current_metrics",
+                "fqn": ["weather_project", "marts", "weather_current_metrics"],
+                "depends_on": {"nodes": ["model.weather_project.stg_weather_current"], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "table",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "marts",
+                "alias": "weather_current_metrics"
+            },
+            "model.weather_project.weather_daily_snapshot": {
+                "name": "weather_daily_snapshot",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.weather_daily_snapshot",
+                "fqn": ["weather_project", "marts", "weather_daily_snapshot"],
+                "depends_on": {"nodes": ["model.weather_project.stg_weather_forecast_daily"], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "table",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "marts",
+                "alias": "weather_daily_snapshot"
+            },
+            "model.weather_project.weather_daily_summary": {
+                "name": "weather_daily_summary",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.weather_daily_summary",
+                "fqn": ["weather_project", "marts", "weather_daily_summary"],
+                "depends_on": {"nodes": ["model.weather_project.weather_daily_snapshot"], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "table",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "marts",
+                "alias": "weather_daily_summary"
+            },
+            "model.weather_project.weather_extremes": {
+                "name": "weather_extremes",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.weather_extremes",
+                "fqn": ["weather_project", "marts", "weather_extremes"],
+                "depends_on": {"nodes": ["model.weather_project.weather_daily_summary"], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "table",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "marts",
+                "alias": "weather_extremes"
+            },
+            "model.weather_project.weather_trends": {
+                "name": "weather_trends",
+                "resource_type": "model",
+                "package_name": "weather_project",
+                "unique_id": "model.weather_project.weather_trends",
+                "fqn": ["weather_project", "marts", "weather_trends"],
+                "depends_on": {"nodes": ["model.weather_project.weather_daily_summary"], "macros": []},
+                "config": {
+                    "enabled": True,
+                    "materialized": "table",
+                    "tags": [],
+                    "meta": {},
+                    "on_schema_change": "ignore"
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "marts",
+                "alias": "weather_trends"
             }
         },
         "sources": {},
         "macros": {},
         "parent_map": {},
-        "child_map": {"model.weather_project.stg_weather_current": []},
+        "child_map": {
+            "model.weather_project.stg_weather_current": ["model.weather_project.weather_current_metrics"],
+            "model.weather_project.stg_weather_forecast_daily": ["model.weather_project.weather_daily_snapshot"],
+            "model.weather_project.stg_weather_forecast_hourly": [],
+            "model.weather_project.weather_current_metrics": [],
+            "model.weather_project.weather_daily_snapshot": ["model.weather_project.weather_daily_summary"],
+            "model.weather_project.weather_daily_summary": ["model.weather_project.weather_extremes", "model.weather_project.weather_trends"],
+            "model.weather_project.weather_extremes": [],
+            "model.weather_project.weather_trends": []
+        },
         "group_map": {},
         "disabled": {},
         "exposures": {},
