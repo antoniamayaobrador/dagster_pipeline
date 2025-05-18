@@ -125,10 +125,40 @@ jobs:
           echo "Generated minimal dbt manifest:"
           head -n 20 target/manifest.json
 
-      - name: Debug Secrets
+      - name: Load environment variables
         if: steps.prerun.outputs.result == 'pex-deploy'
+        id: load-env
         run: |
-          echo "DAGSTER_CLOUD_API_TOKEN is ${DAGSTER_CLOUD_API_TOKEN:+set}"
+          # Check if the token is set in GitHub secrets
+          if [ -n "$DAGSTER_CLOUD_API_TOKEN" ]; then
+            echo "Using DAGSTER_CLOUD_API_TOKEN from GitHub secrets"
+          # If not, try to load from .env file
+          elif [ -f "weather_project/.env" ]; then
+            echo "Loading DAGSTER_CLOUD_API_TOKEN from .env file"
+            # Use grep to extract the token from .env and export it
+            export $(grep -v '^#' weather_project/.env | xargs)
+            if [ -n "$DAGSTER_CLOUD_API_TOKEN" ]; then
+              echo "Successfully loaded DAGSTER_CLOUD_API_TOKEN from .env"
+            else
+              echo "DAGSTER_CLOUD_API_TOKEN not found in .env"
+              exit 1
+            fi
+          else
+            echo "Error: DAGSTER_CLOUD_API_TOKEN not found in GitHub secrets or .env file"
+            exit 1
+          fi
+          
+          # Verify the token is set
+          if [ -z "$DAGSTER_CLOUD_API_TOKEN" ]; then
+            echo "Error: DAGSTER_CLOUD_API_TOKEN is not set"
+            exit 1
+          fi
+          
+          # Mask the token in logs (just the first 8 characters will be visible)
+          echo "DAGSTER_CLOUD_API_TOKEN=${DAGSTER_CLOUD_API_TOKEN:0:8}..."
+          
+          # Make the token available to subsequent steps
+          echo "DAGSTER_CLOUD_API_TOKEN=$DAGSTER_CLOUD_API_TOKEN" >> $GITHUB_ENV
         env:
           DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
 
@@ -142,7 +172,9 @@ jobs:
           python_version: "${{ env.PYTHON_VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+          DAGSTER_CLOUD_API_TOKEN: ${{ env.DAGSTER_CLOUD_API_TOKEN }}
+          DAGSTER_CLOUD_ORGANIZATION: ${{ env.DAGSTER_CLOUD_ORGANIZATION || 'weatherdec2025' }}
+          DAGSTER_CLOUD_DEPLOYMENT: ${{ env.DAGSTER_CLOUD_DEPLOYMENT || 'production' }}
 
   dagster_cloud_docker_deploy:
     name: Docker Deploy
