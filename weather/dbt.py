@@ -66,7 +66,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "staging",
-                "alias": "stg_weather_current"
+                "alias": "stg_weather_current",
+                "description": "Staging model for current weather data"
             },
             "model.weather_project.stg_weather_forecast_daily": {
                 "name": "stg_weather_forecast_daily",
@@ -84,7 +85,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "staging",
-                "alias": "stg_weather_forecast_daily"
+                "alias": "stg_weather_forecast_daily",
+                "description": "Staging model for daily weather forecast data"
             },
             "model.weather_project.stg_weather_forecast_hourly": {
                 "name": "stg_weather_forecast_hourly",
@@ -102,7 +104,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "staging",
-                "alias": "stg_weather_forecast_hourly"
+                "alias": "stg_weather_forecast_hourly",
+                "description": "Staging model for hourly weather forecast data"
             },
             "model.weather_project.weather_current_metrics": {
                 "name": "weather_current_metrics",
@@ -120,7 +123,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "marts",
-                "alias": "weather_current_metrics"
+                "alias": "weather_current_metrics",
+                "description": "Current weather metrics and analysis"
             },
             "model.weather_project.weather_daily_snapshot": {
                 "name": "weather_daily_snapshot",
@@ -138,7 +142,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "marts",
-                "alias": "weather_daily_snapshot"
+                "alias": "weather_daily_snapshot",
+                "description": "Daily snapshot of weather forecasts"
             },
             "model.weather_project.weather_daily_summary": {
                 "name": "weather_daily_summary",
@@ -156,7 +161,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "marts",
-                "alias": "weather_daily_summary"
+                "alias": "weather_daily_summary",
+                "description": "Daily summary of weather conditions"
             },
             "model.weather_project.weather_extremes": {
                 "name": "weather_extremes",
@@ -174,7 +180,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "marts",
-                "alias": "weather_extremes"
+                "alias": "weather_extremes",
+                "description": "Analysis of extreme weather conditions"
             },
             "model.weather_project.weather_trends": {
                 "name": "weather_trends",
@@ -192,7 +199,8 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "marts",
-                "alias": "weather_trends"
+                "alias": "weather_trends",
+                "description": "Weather trend analysis and patterns"
             }
         },
         "sources": {},
