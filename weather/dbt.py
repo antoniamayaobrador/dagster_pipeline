@@ -227,12 +227,45 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
         "saved_queries": {},
         "unit_tests": {},
         "semantic_layer": {},
-        "query_statistics": {}
+        "query_statistics": {},
+        "tests": {
+            "test.weather_project.not_null_stg_weather_current_date_time.e72705e836": {
+                "name": "not_null_stg_weather_current_date_time",
+                "resource_type": "test",
+                "package_name": "weather_project",
+                "unique_id": "test.weather_project.not_null_stg_weather_current_date_time.e72705e836",
+                "fqn": ["weather_project", "not_null_stg_weather_current_date_time"],
+                "depends_on": {
+                    "nodes": ["model.weather_project.stg_weather_current"],
+                    "macros": []
+                },
+                "config": {
+                    "enabled": True,
+                    "severity": "ERROR",
+                    "warn_if": "!=0",
+                    "error_if": ">0",
+                    "fail_calc": "count(*)",
+                    "tags": ["not_null"],
+                    "meta": {}
+                },
+                "test_metadata": {
+                    "name": "not_null",
+                    "kwargs": {}
+                },
+                "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
+                "schema": "dbt_test__audit",
+                "alias": "not_null_stg_weather_current_date_time_e72705e836"
+            }
+        }
     }
+    
+    # Add tests to nodes as well (some versions of dbt expect them there too)
+    if 'tests' in minimal_manifest:
+        minimal_manifest['nodes'].update(minimal_manifest['tests'])
     
     # Write the manifest to disk
     with open(path, 'w') as f:
-        json.dump(minimal_manifest, f)
+        json.dump(minimal_manifest, f, indent=2)
         
     return minimal_manifest
 
