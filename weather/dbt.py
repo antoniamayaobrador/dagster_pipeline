@@ -229,32 +229,67 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
         "semantic_layer": {},
         "query_statistics": {},
         "tests": {
-            "test.weather_project.not_null_stg_weather_current_date_time.e72705e836": {
+            "test.weather_project.not_null_stg_weather_current_date_time.5c9bfbb1b0": {
                 "name": "not_null_stg_weather_current_date_time",
                 "resource_type": "test",
                 "package_name": "weather_project",
-                "unique_id": "test.weather_project.not_null_stg_weather_current_date_time.e72705e836",
-                "fqn": ["weather_project", "not_null_stg_weather_current_date_time"],
+                "unique_id": "test.weather_project.not_null_stg_weather_current_date_time.5c9bfbb1b0",
+                "fqn": ["weather_project", "staging", "schema_test", "not_null_stg_weather_current_date_time"],
+                "refs": [],
+                "sources": [],
                 "depends_on": {
                     "nodes": ["model.weather_project.stg_weather_current"],
-                    "macros": []
+                    "macros": ["macro.dbt.test_not_null"]
                 },
                 "config": {
                     "enabled": True,
                     "severity": "ERROR",
-                    "warn_if": "!=0",
-                    "error_if": ">0",
-                    "fail_calc": "count(*)",
-                    "tags": ["not_null"],
-                    "meta": {}
+                    "tags": ["schema"],
+                    "meta": {},
+                    "materialized": "test",
+                    "schema": "dbt_test__audit",
+                    "alias": "not_null_stg_weather_current_date_time_5c9bfbb1b0"
                 },
                 "test_metadata": {
                     "name": "not_null",
-                    "kwargs": {}
+                    "kwargs": {},
+                    "namespace": "dbt"
                 },
                 "database": os.getenv("SNOWFLAKE_DATABASE", "WEATHER"),
                 "schema": "dbt_test__audit",
-                "alias": "not_null_stg_weather_current_date_time_e72705e836"
+                "alias": "not_null_stg_weather_current_date_time_5c9bfbb1b0",
+                "raw_sql": "{{ test_not_null(\n        relation=ref('stg_weather_current'),\n        column_name='date_time'\n    ) }}",
+                "test_node": {
+                    "name": "not_null",
+                    "package_name": "dbt",
+                    "depends_on": {
+                        "nodes": ["model.weather_project.stg_weather_current"],
+                        "macros": ["macro.dbt.test_not_null"]
+                    },
+                    "config": {
+                        "enabled": True,
+                        "severity": "ERROR",
+                        "tags": ["schema"],
+                        "meta": {},
+                        "materialized": "test"
+                    },
+                    "test_metadata": {
+                        "name": "not_null",
+                        "kwargs": {},
+                        "namespace": "dbt"
+                    },
+                    "columns": {},
+                    "description": "",
+                    "docs": {"show": True},
+                    "patch_path": None,
+                    "unrendered_config": {"severity": "ERROR"},
+                    "column_name": "date_time"
+                },
+                "column_name": "date_time",
+                "description": "",
+                "docs": {"show": True},
+                "patch_path": None,
+                "unrendered_config": {"severity": "ERROR"}
             }
         }
     }
