@@ -125,15 +125,24 @@ jobs:
           echo "Generated minimal dbt manifest:"
           head -n 20 target/manifest.json
 
+      - name: Debug Secrets
+        if: steps.prerun.outputs.result == 'pex-deploy'
+        run: |
+          echo "DAGSTER_CLOUD_API_TOKEN is ${DAGSTER_CLOUD_API_TOKEN:+set}"
+        env:
+          DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
+
       - name: Python Executable Deploy
         if: steps.prerun.outputs.result == 'pex-deploy'
-        uses: dagster-io/dagster-cloud-action/actions/build_deploy_python_executable@v0.1
+        uses: dagster-io/dagster-cloud-action@v1
         with:
-          dagster_cloud_file: "$GITHUB_WORKSPACE/project-repo/$DAGSTER_CLOUD_FILE"
-          build_output_dir: "$GITHUB_WORKSPACE/build"
+          action: 'build_deploy_python_executable'
+          dagster_cloud_file: "${{ github.workspace }}/project-repo/${{ env.DAGSTER_CLOUD_FILE }}"
+          build_output_dir: "${{ github.workspace }}/build"
           python_version: "${{ env.PYTHON_VERSION }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAGSTER_CLOUD_API_TOKEN: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
 
   dagster_cloud_docker_deploy:
     name: Docker Deploy
