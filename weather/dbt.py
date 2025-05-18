@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-from dagster import AssetExecutionContext
+from dagster import AssetExecutionContext, ResourceParam, Definitions, load_assets_from_modules
 from dagster_dbt import DbtCliResource, dbt_assets, DagsterDbtTranslator
 
 # Set up logging
@@ -236,6 +236,12 @@ def create_minimal_manifest(path: Path) -> Dict[str, Any]:
         
     return minimal_manifest
 
+# Initialize dbt resources
+dbt = DbtCliResource(
+    project_dir=str(Path(__file__).parent.parent / "weather_project"),
+    profiles_dir=str(Path(__file__).parent.parent / "weather_project"),
+)
+
 # Get the manifest path
 DBT_MANIFEST_PATH = find_manifest_path()
 
@@ -255,45 +261,10 @@ except Exception as e:
     create_minimal_manifest(DBT_MANIFEST_PATH)
 
 @dbt_assets(manifest=DBT_MANIFEST_PATH)
-def weather_project_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
-    """dbt assets for the weather project."""
-    # Log environment information
-    context.log.info(f"Python working directory: {os.getcwd()}")
-    context.log.info(f"Manifest path: {DBT_MANIFEST_PATH.absolute()}")
-    context.log.info(f"Manifest exists: {DBT_MANIFEST_PATH.exists()}")
-    
-    # Verify required environment variables
-    required_vars = [
-        'SNOWFLAKE_ACCOUNT',
-        'SNOWFLAKE_USER',
-        'SNOWFLAKE_PASSWORD',
-        'SNOWFLAKE_DATABASE',
-        'SNOWFLAKE_WAREHOUSE'
-    ]
-    
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    if missing_vars:
-        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
-    
-    try:
-        # First, try to run dbt deps to ensure all dependencies are installed
-        context.log.info("Running dbt deps...")
-        dbt.cli(["deps"], context=context).wait()
-        
-        # Then compile the project to ensure the manifest is up to date
-        context.log.info("Running dbt compile...")
-        dbt.cli(["compile"], context=context).wait()
-        
-        # Finally, run dbt build
-        context.log.info("Running dbt build...")
-        yield from dbt.cli(["build"], context=context).stream()
-        
-    except Exception as e:
-        context.log.error(f"Error running dbt command: {str(e)}")
-        # If we get here, the build failed. Try to run the specific model that's failing.
-        try:
-            context.log.info("Attempting to run just the stg_weather_current model...")
-            yield from dbt.cli(["run", "--select", "stg_weather_current"], context=context).stream()
-        except Exception as inner_e:
-            context.log.error(f"Error running stg_weather_current model: {str(inner_e)}")
-            raise
+def weather_project_dbt_assets(
+    context: AssetExecutionContext,
+    dbt: ResourceParam[DbtCliResource]  # Explicitly mark as a resource, not an asset input
+):
+    """Minimal, robust Dagster/dbt asset integration. Let dagster-dbt handle orchestration."""
+    yield from dbt.cli(["build", "--full-refresh"], context=context).stream()
+
