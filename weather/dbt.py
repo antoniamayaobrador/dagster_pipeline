@@ -335,4 +335,3 @@ def weather_project_dbt_assets(
 ):
     """Minimal, robust Dagster/dbt asset integration. Let dagster-dbt handle orchestration."""
     yield from dbt.cli(["build", "--full-refresh"], context=context).stream()
-

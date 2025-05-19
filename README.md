@@ -49,7 +49,7 @@ weather/
 - dbt
 - Dagster
 
-## Setup
+## Setup:
 
 1. **Clone the repository**
    ```bash
@@ -167,6 +167,3 @@ flake8
 - Airbyte instance
 - GitHub repository for CI/CD
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
