@@ -1,5 +1,9 @@
 import os
 from pathlib import Path
+from dagster import EnvVar
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Define paths
 def file_relative_path(file: str, relative_path: str) -> str:
@@ -8,10 +12,10 @@ def file_relative_path(file: str, relative_path: str) -> str:
 
 # Project directories
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-DBT_PROJECT_DIR = str(PROJECT_ROOT / "weather_project")
-DBT_PROFILES_DIR = str(PROJECT_ROOT / "weather_project")
-DBT_TARGET_DIR = str(PROJECT_ROOT / "weather_project" / "target")
 
+DBT_PROJECT_DIR = os.environ.get("DBT_PROJECT_DIR")
+DBT_PROFILES_DIR = os.environ.get("DBT_PROFILES_DIR")
+DBT_TARGET_DIR = os.environ.get("DBT_TARGET_DIR")
 # Ensure target directory exists
 Path(DBT_TARGET_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -39,6 +43,6 @@ DBT_CONFIG = {
 }
 
 # Schedule configuration
-WEATHER_SCHEDULE_CRON = "0 8 * * *"  # 8am daily
-EXECUTION_TIMEZONE = "Europe/Madrid"
+WEATHER_SCHEDULE_CRON = os.environ.get("WEATHER_SCHEDULE_CRON", "0 8 * * *") # 8am daily
+EXECUTION_TIMEZONE = os.environ.get("EXECUTION_TIMEZONE", "Europe/Madrid")
 
